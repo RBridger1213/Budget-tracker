@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1D9E75" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Budget" />
+  <title>Fortnightly Budget</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+  <style>
+    :root {
+      --green: #1D9E75;
+      --green-dark: #0F6E56;
+      --red: #D85A30;
+      --amber: #BA7517;
+      --bg: #0f1117;
+      --bg2: #1a1d27;
+      --bg3: #22263a;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+      --text: #f0f0f0;
+      --text2: #9fa3b0;
+      --text3: #6b6f7d;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100dvh; max-width: 480px; margin: 0 auto;
+    }
+
+    /* HEADER & TABS */
+    .header {
+      padding: calc(var(--safe-top) + 14px) 16px 0;
+      background: var(--bg); position: sticky; top: 0; z-index: 10;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .app-title { font-size: 13px; font-weight: 600; color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; }
+    .period-badge { font-size: 11px; background: var(--bg3); color: var(--text2); padding: 4px 10px; border-radius: 99px; border: 1px solid var(--border); }
+    .tabs { display: flex; }
+    .tab-btn {
+      flex: 1; background: none; border: none; border-bottom: 2px solid transparent;
+      padding: 10px 0; font-size: 13px; font-weight: 600; color: var(--text3);
+      cursor: pointer; font-family: inherit; transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+    /* PAGES */
+    .page { display: none; padding: 20px 16px calc(var(--safe-bottom) + 30px); }
+    .page.active { display: block; }
+
+    /* CARDS */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; }
+    .field-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+
+    /* PAY INPUT */
+    .big-input-row { display: flex; align-items: center; gap: 8px; }
+    .currency { font-size: 32px; font-weight: 300; color: var(--text3); }
+    .big-input { flex: 1; font-size: 36px; font-weight: 600; color: var(--text); background: transparent; border: none; outline: none; min-width: 0; font-family: inherit; }
+    .big-input::placeholder { color: var(--text3); }
+
+    /* STATS */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 12px; }
+    .stat-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .stat-value { font-size: 17px; font-weight: 700; color: var(--text); word-break: break-all; }
+    .stat-value.positive { color: var(--green); }
+    .stat-value.negative { color: var(--red); }
+
+    /* PROGRESS */
+    .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .progress-header span { font-size: 13px; color: var(--text2); }
+    .progress-pct { font-weight: 700; font-size: 15px; color: var(--text) !important; }
+    .bar-track { height: 10px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-bottom: 6px; }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s cubic-bezier(.4,0,.2,1), background 0.3s; }
+    .bar-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); }
+
+    /* EXPENSE LIST */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .badge { font-size: 12px; color: var(--text3); background: var(--bg3); padding: 3px 9px; border-radius: 99px; border: 1px solid var(--border); }
+    .add-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .text-input {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 14px; font-size: 15px;
+      color: var(--text); outline: none; font-family: inherit; transition: border-color 0.15s;
+    }
+    .text-input:focus { border-color: var(--green); }
+    .text-input::placeholder { color: var(--text3); }
+    .amount-wrap {
+      display: flex; align-items: center; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 0 14px; gap: 4px; transition: border-color 0.15s;
+    }
+    .amount-wrap:focus-within { border-color: var(--green); }
+    .amount-wrap span { font-size: 14px; color: var(--text3); }
+    .amount-wrap input { width: 100%; background: transparent; border: none; outline: none; font-size: 15px; color: var(--text); font-family: inherit; padding: 12px 0; }
+    .expense-list { display: flex; flex-direction: column; gap: 8px; }
+    .expense-item { display: flex; align-items: center; gap: 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 14px; }
+    .expense-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .expense-name { flex: 1; font-size: 15px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .expense-amount { font-size: 15px; font-weight: 600; color: var(--text); flex-shrink: 0; }
+    .del-btn { background: none; border: none; cursor: pointer; color: var(--text3); padding: 4px; display: flex; align-items: center; border-radius: 6px; flex-shrink: 0; }
+    .del-btn:active { color: var(--red); }
+    .empty-msg { text-align: center; color: var(--text3); font-size: 14px; padding: 24px 0; }
+
+    /* BUTTONS */
+    .btn-primary {
+      width: 100%; background: var(--green); color: white; border: none;
+      border-radius: var(--radius-sm); padding: 13px; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: opacity 0.15s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary:active { opacity: 0.8; transform: scale(0.98); }
+    .btn-secondary {
+      width: 100%; background: none; border: 1px solid var(--border2);
+      border-radius: var(--radius-sm); padding: 13px; font-size: 14px; font-weight: 600;
+      color: var(--text2); cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-secondary:active { border-color: var(--green); color: var(--green); }
+    .btn-danger { width: 100%; background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 14px; color: var(--text3); cursor: pointer; font-family: inherit; transition: border-color 0.15s, color 0.15s; margin-top: 10px; }
+    .btn-danger:active { border-color: var(--red); color: var(--red); }
+
+    /* SAVE BANNER */
+    .save-banner {
+      background: linear-gradient(135deg, #0F6E56, #1D9E75);
+      border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px;
+      display: none; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .save-banner-text { font-size: 13px; color: rgba(255,255,255,0.85); }
+    .save-banner-text strong { color: white; display: block; font-size: 15px; margin-bottom: 2px; }
+    .save-now-btn {
+      background: white; color: var(--green-dark); border: none;
+      border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit; flex-shrink: 0; white-space: nowrap;
+    }
+
+    /* HISTORY */
+    .history-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+    .history-empty .icon { font-size: 40px; margin-bottom: 12px; }
+    .history-empty p { font-size: 14px; line-height: 1.6; }
+    .history-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; cursor: pointer; }
+    .history-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .history-period { font-size: 13px; font-weight: 600; color: var(--text2); }
+    .history-date { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .history-remaining { font-size: 15px; font-weight: 700; }
+    .history-remaining.positive { color: var(--green); }
+    .history-remaining.negative { color: var(--red); }
+    .history-bar-track { height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
+    .history-bar-fill { height: 100%; border-radius: 99px; }
+    .history-stats { display: flex; justify-content: space-between; }
+    .history-stat { font-size: 12px; color: var(--text3); }
+    .history-stat strong { color: var(--text2); display: block; font-size: 13px; }
+    .history-detail { display: none; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+    .history-detail.open { display: block; }
+    .history-exp-item { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; border-bottom: 1px solid var(--border); align-items: center; }
+    .history-exp-item:last-child { border-bottom: none; }
+    .history-exp-name { color: var(--text2); display: flex; align-items: center; gap: 8px; }
+    .history-exp-amt { color: var(--text); font-weight: 600; }
+    .del-history-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; color: var(--text3); cursor: pointer; font-family: inherit; margin-top: 12px; width: 100%; }
+    .del-history-btn:active { border-color: var(--red); color: var(--red); }
+
+    /* INSTALL BANNER */
+    #install-banner { display: none; position: fixed; bottom: calc(var(--safe-bottom) + 16px); left: 16px; right: 16px; background: var(--bg2); border: 1px solid var(--green); border-radius: var(--radius); padding: 14px 16px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+    .banner-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .banner-text { font-size: 14px; color: var(--text); flex: 1; }
+    .banner-text span { font-weight: 600; color: var(--green); }
+    .banner-btns { display: flex; gap: 8px; }
+    .install-btn { background: var(--green); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .dismiss-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--text2); cursor: pointer; font-family: inherit; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <span class="app-title">💰 Budget Tracker</span>
+    <span class="period-badge">Fortnightly</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-current" onclick="showTab('current', this)">Current</button>
+    <button class="tab-btn" id="tab-history" onclick="showTab('history', this)">History</button>
+  </div>
+</div>
+
+<!-- CURRENT PAGE -->
+<div class="page active" id="page-current">
+
+  <div class="save-banner" id="save-banner">
+    <div class="save-banner-text">
+      <strong>Done with this fortnight?</strong>
+      Save it and start fresh
+    </div>
+    <button class="save-now-btn" onclick="saveFortnight()">Save &amp; New</button>
+  </div>
+
+  <div class="card">
+    <div class="field-label">My fortnightly pay</div>
+    <div class="big-input-row">
+      <span class="currency">K</span>
+      <input class="big-input" type="number" id="pay-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-label">Total pay</div><div class="stat-value" id="total-pay">K0.00</div></div>
+    <div class="stat-card"><div class="stat-label">Expenses</div><div class="stat-value" id="total-exp">K0.00</div></div>
+    <div class="stat-card"><div class="stat-label">Remaining</div><div class="stat-value" id="remaining">K0.00</div></div>
+  </div>
+
+  <div class="card" style="padding:16px 20px;">
+    <div class="progress-header">
+      <span>Budget used</span>
+      <span class="progress-pct" id="pct-label">0%</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="bar-fill" style="width:0%;background:var(--green)"></div></div>
+    <div class="bar-labels"><span>K0</span><span id="bar-max">K0.00</span></div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <span class="section-title">Expenses</span>
+      <span class="badge" id="exp-count">0 items</span>
+    </div>
+    <div class="add-form">
+      <input class="text-input" type="text" id="exp-name" placeholder="Expense name (e.g. Rent)" />
+      <div class="amount-wrap">
+        <span>K</span>
+        <input type="number" id="exp-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+      </div>
+      <button class="btn-primary" onclick="addExpense()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Add expense
+      </button>
+    </div>
+    <div class="expense-list" id="expense-list">
+      <div class="empty-msg">No expenses yet — add one above</div>
+    </div>
+    <button class="btn-danger" onclick="resetAll()">Reset everything</button>
+  </div>
+
+  <button class="btn-secondary" onclick="saveFortnight()" style="margin-bottom:20px;">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    Save fortnight &amp; start new
+  </button>
+
+</div>
+
+<!-- HISTORY PAGE -->
+<div class="page" id="page-history">
+  <div id="history-list"></div>
+</div>
+
+<div id="install-banner">
+  <div class="banner-row">
+    <div class="banner-text"><span>Install app</span><br>Add to your home screen for quick access</div>
+    <div class="banner-btns">
+      <button class="dismiss-btn" onclick="dismissBanner()">Later</button>
+      <button class="install-btn" onclick="installApp()">Install</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#1D9E75','#378ADD','#7F77DD','#D85A30','#D4537E','#BA7517','#639922','#E24B4A','#0F6E56'];
+let deferredPrompt = null;
+let colorIdx = 0;
+
+let pay = parseFloat(localStorage.getItem('budget_pay') || '0') || 0;
+let expenses = JSON.parse(localStorage.getItem('budget_expenses') || '[]');
+let history = JSON.parse(localStorage.getItem('budget_history') || '[]');
+colorIdx = expenses.length % COLORS.length;
+
+function fmt(n) {
+  return 'K' + Math.abs(n).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtDate(ts) {
+  return new Date(ts).toLocaleDateString('en-PG', {day:'numeric', month:'short', year:'numeric'});
+}
+function save() {
+  localStorage.setItem('budget_pay', pay);
+  localStorage.setItem('budget_expenses', JSON.stringify(expenses));
+  localStorage.setItem('budget_history', JSON.stringify(history));
+}
+
+function recalc() {
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const rem = pay - total;
+  const pct = pay > 0 ? Math.min(100, Math.round((total / pay) * 100)) : 0;
+
+  document.getElementById('total-pay').textContent = fmt(pay);
+  document.getElementById('total-exp').textContent = fmt(total);
+
+  const remEl = document.getElementById('remaining');
+  remEl.textContent = (rem < 0 ? '-' : '') + fmt(rem);
+  remEl.className = 'stat-value ' + (rem < 0 ? 'negative' : rem > 0 ? 'positive' : '');
+
+  document.getElementById('pct-label').textContent = pct + '%';
+  document.getElementById('bar-max').textContent = fmt(pay);
+
+  const fill = document.getElementById('bar-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--amber)' : 'var(--green)';
+  document.getElementById('exp-count').textContent = expenses.length + (expenses.length === 1 ? ' item' : ' items');
+
+  const banner = document.getElementById('save-banner');
+  banner.style.display = (pay > 0 && expenses.length > 0) ? 'flex' : 'none';
+}
+
+function renderList() {
+  const list = document.getElementById('expense-list');
+  if (expenses.length === 0) {
+    list.innerHTML = '<div class="empty-msg">No expenses yet — add one above</div>';
+    return;
+  }
+  list.innerHTML = expenses.map((e, i) => `
+    <div class="expense-item">
+      <div class="expense-dot" style="background:${e.color}"></div>
+      <span class="expense-name">${e.name}</span>
+      <span class="expense-amount">${fmt(e.amount)}</span>
+      <button class="del-btn" onclick="removeExpense(${i})" aria-label="Remove">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function addExpense() {
+  const nameEl = document.getElementById('exp-name');
+  const amtEl = document.getElementById('exp-amount');
+  const name = nameEl.value.trim();
+  const amount = parseFloat(amtEl.value);
+  if (!name || !amount || amount <= 0) { if (!name) nameEl.focus(); else amtEl.focus(); return; }
+  expenses.push({ name, amount, color: COLORS[colorIdx % COLORS.length] });
+  colorIdx++;
+  nameEl.value = ''; amtEl.value = '';
+  nameEl.focus();
+  save(); renderList(); recalc();
+}
+
+function removeExpense(i) {
+  expenses.splice(i, 1);
+  save(); renderList(); recalc();
+}
+
+function saveFortnight() {
+  if (pay === 0 && expenses.length === 0) {
+    alert('Nothing to save — enter your pay and expenses first.');
+    return;
+  }
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  history.unshift({
+    id: Date.now(),
+    savedAt: Date.now(),
+    pay, total,
+    remaining: pay - total,
+    expenses: JSON.parse(JSON.stringify(expenses))
+  });
+  pay = 0; expenses = []; colorIdx = 0;
+  document.getElementById('pay-input').value = '';
+  save(); renderList(); recalc(); renderHistory();
+  showTab('history', document.getElementById('tab-history'));
+}
+
+function resetAll() {
+  if (!confirm('Reset everything and start fresh?')) return;
+  pay = 0; expenses = []; colorIdx = 0;
+  document.getElementById('pay-input').value = '';
+  save(); renderList(); recalc();
+}
+
+function deleteHistory(id) {
+  if (!confirm('Delete this fortnight record?')) return;
+  history = history.filter(h => h.id !== id);
+  save(); renderHistory();
+}
+
+function toggleDetail(id) {
+  const el = document.getElementById('detail-' + id);
+  if (el) el.classList.toggle('open');
+}
+
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  if (history.length === 0) {
+    container.innerHTML = `<div class="history-empty"><div class="icon">📂</div><p>No saved fortnights yet.<br>Save your current budget to see it here.</p></div>`;
+    return;
+  }
+  container.innerHTML = history.map((h, idx) => {
+    const pct = h.pay > 0 ? Math.min(100, Math.round((h.total / h.pay) * 100)) : 0;
+    const barColor = pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--amber)' : 'var(--green)';
+    const remClass = h.remaining < 0 ? 'negative' : 'positive';
+    const sign = h.remaining < 0 ? '-' : '+';
+    return `
+      <div class="history-item" onclick="toggleDetail(${h.id})">
+        <div class="history-item-header">
+          <div>
+            <div class="history-period">Fortnight ${history.length - idx}</div>
+            <div class="history-date">Saved ${fmtDate(h.savedAt)}</div>
+          </div>
+          <div class="history-remaining ${remClass}">${sign}${fmt(h.remaining)}</div>
+        </div>
+        <div class="history-bar-track">
+          <div class="history-bar-fill" style="width:${pct}%;background:${barColor}"></div>
+        </div>
+        <div class="history-stats">
+          <div class="history-stat"><strong>${fmt(h.pay)}</strong>Pay</div>
+          <div class="history-stat"><strong>${fmt(h.total)}</strong>Spent</div>
+          <div class="history-stat"><strong>${pct}%</strong>Used</div>
+        </div>
+        <div class="history-detail" id="detail-${h.id}">
+          ${h.expenses.length === 0 ? '<p style="font-size:13px;color:var(--text3);padding:8px 0;">No expenses recorded</p>' :
+            h.expenses.map(e => `
+              <div class="history-exp-item">
+                <span class="history-exp-name">
+                  <span style="width:8px;height:8px;border-radius:50%;background:${e.color};display:inline-block;flex-shrink:0;"></span>
+                  ${e.name}
+                </span>
+                <span class="history-exp-amt">${fmt(e.amount)}</span>
+              </div>`).join('')}
+          <button class="del-history-btn" onclick="event.stopPropagation();deleteHistory(${h.id})">Delete this record</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function showTab(tab, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (tab === 'history') renderHistory();
+}
+
+document.getElementById('pay-input').addEventListener('input', function() {
+  pay = parseFloat(this.value) || 0;
+  save(); recalc();
+});
+document.getElementById('exp-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('exp-amount').focus();
+});
+document.getElementById('exp-amount').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addExpense();
+});
+
+// Init
+document.getElementById('pay-input').value = pay > 0 ? pay : '';
+renderList(); recalc();
+
+// PWA
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'block';
+});
+function installApp() {
+  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; dismissBanner(); }); }
+}
+function dismissBanner() { document.getElementById('install-banner').style.display = 'none'; }
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+</script>
+</body>
+</html>
